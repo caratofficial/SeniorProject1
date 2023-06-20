@@ -1,6 +1,7 @@
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.views import PasswordChangeView
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.core.mail import EmailMessage, send_mail
@@ -9,6 +10,7 @@ from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 import os
 from .models import UserProfile, ShoeFeatures
+
 
 
 def welcome(request):
@@ -58,8 +60,6 @@ def signup(request):
                 phoneno=phoneno
             )
     messages.success(request, "Registration successful. You can now login.")
-            
-    
     return render(request, 'signup.html', {'messages': messages.get_messages(request)})
 
 def signin(request):
@@ -72,7 +72,7 @@ def signin(request):
             if user is not None:
                 login(request, user)
                 messages.info(request, f"You are now logged in as {username}.")
-                return redirect("user_dashboard")
+                return redirect("homepage")
         messages.error(request, "Invalid username or password.")
     else:
         form = AuthenticationForm()
@@ -82,7 +82,6 @@ def signin(request):
 def signout(request):
     logout(request)
     return redirect('homepage')
-
 def aboutus(request):
     return render(request, 'aboutus.html')
 
@@ -139,6 +138,9 @@ def womenshoes(request):
 def product_page(request):
     return render(request, 'product_page.html')
 
+def cart_view(request):
+    return render(request, "cart_view.html")
+
 def filtered_products(request):
     return render(request, 'filtered_products.html')
 
@@ -146,8 +148,7 @@ def filter_products(request):
     type1 = request.GET.get('type1')  
     type2 = request.GET.get('type2') 
     maincolor = request.GET.get('maincolor')  
-    subcolor1 = request.GET.get('subcolor1')  
-    subcolor2 = request.GET.get('subcolor2')  
+    subcolor = request.GET.get('subcolor')   
     size = request.GET.get('size') 
     price_range = request.GET.getlist('price_range')  
     brand = request.GET.get('brand')  
@@ -160,14 +161,12 @@ def filter_products(request):
         products = products.filter(type1=type1)
     if type2:
         products = products.filter(type2=type2)
+    if size:
+        products = products.filter(size=size)    
     if maincolor:
         products = products.filter(maincolor=maincolor)
-    if subcolor1:
-        products = products.filter(subcolor1=subcolor1)
-    if subcolor2:
-        products = products.filter(subcolor2=subcolor2)
-    if size:
-        products = products.filter(size=size)
+    if subcolor:
+        products = products.filter(subcolor=subcolor)
     if price_range:
         if 'low' in price_range:
             products = products.filter(price__lte=50)  
@@ -183,3 +182,68 @@ def filter_products(request):
 
 def faqpage(request):
     return render(request, 'faqpage.html')
+
+@login_required
+@csrf_protect
+def user_private_info_change(request):
+    if request.method == 'POST':
+        address = request.POST.get('inputAddress')
+        address1 = request.POST.get('inputAddress1')
+        city = request.POST.get('inputCity')
+        state = request.POST.get('inputState')
+        zip_code = request.POST.get('inputZip')
+
+        if zip_code and not zip_code.isdigit():
+            message = "Invalid zip code. Please enter the correct zip code."
+            return render(request, "user_settings.html", {'message': message})
+
+        user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        user_profile.address = address
+        user_profile.address1 = address1
+        user_profile.city = city
+        user_profile.state = state
+        user_profile.zip_code = zip_code
+        user_profile.save()
+
+        return redirect("edit_account_success")
+
+    return render(request, "user_settings.html")
+
+@login_required
+@csrf_protect
+def user_public_info_change(request):
+    if request.method == 'POST':
+        phoneno = request.POST.get('inputPhoneno')
+
+        user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        user_profile.phoneno = phoneno
+        user_profile.save()
+
+        
+        return render(request, "edit_account_success.html")
+    return render(request, "user_settings.html")
+
+@login_required
+@csrf_protect
+def user_settings(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            form.save()
+            update_session_auth_hash(request, form.user)
+            return redirect('user_settings#password')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = PasswordChangeForm(user=request.user)
+    
+    context = {
+        'form': form
+    }
+    return render(request, 'user_settings.html', context)
+
+def password_change_done(request):
+    return render(request, 'password_change_done.html')
+
+def edit_account_success(request):
+    return render(request, 'edit_account_success.html')

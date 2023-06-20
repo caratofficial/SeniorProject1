@@ -51,7 +51,6 @@
     <nav class="navbar navbar-expand-sm navbar-light bg-light fixed-top">
       <div class="container">
           <a class="navbar-logo"id="navbar-logo">Happy Feet</a>
-          <a class="navbar-brand nav-link-equal" href="{% url 'homepage' %}">Return to Homepage</a>
           <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavId" aria-controls="collapsibleNavId"
               aria-expanded="false" aria-label="Toggle navigation">
               <span class="navbar-toggler-icon"></span>
@@ -81,10 +80,16 @@
               </ul>
               <form class="d-flex my-2 my-lg-0">
                   <input class="form-control me-sm-2" type="text" placeholder="Search">
-                  <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+                  <button class="btn btn-outline-dark ms-2" type="submit">Search</button>
                   {% if user.is_authenticated %}
+                  <a class="btn btn-outline-dark ms-2" href="{% url 'cart_view' %}">
+                    Cart
+                  </a>
                     <a class="btn btn-outline-dark ms-2" href="{% url 'user_settings' %}">
-                      Welcome, {{ user.username }}
+                      Welcome,&nbsp;{{ user.username }}
+                    </a>
+                    <a class="btn btn-outline-dark ms-2" href="{% url 'signout' %}">
+                      Log&nbsp;Out
                     </a>
                   {% else %}
                     <a class="btn btn-outline-dark ms-2" href="{% url 'signin' %}">
@@ -153,7 +158,7 @@
         $('#submitButton').click(function() {
           $(this).prop('disabled', true);
   
-          // Perform form submission using Ajax
+         
           $.ajax({
           url: $('#contactForm').attr('action'),
           method: $('#contactForm').attr('method'),
@@ -161,17 +166,16 @@
           processData: false,
           contentType: false,
           success: function(response) {
-            // Show the notification when the form is successfully submitted
+           
             $('#notification').removeClass('d-none');
           },
           complete: function() {
-            // Re-enable the button after form submission is complete
+           
             $('#submitButton').prop('disabled', false);
           }
           });
         });
   
-        // Hide the notification when the close button is clicked
         $('#notification .btn-close').click(function() {
           $('#notification').addClass('d-none');
         });
